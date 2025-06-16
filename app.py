@@ -3,38 +3,41 @@ import requests
 
 app = Flask(__name__)
 
-# Ruta principal
-@app.route('/')
-def home():
-    return 'DarkSould GPT - Backend activo'
+API_KEY = "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"
+API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Ruta del chat
-@app.route('/chat', methods=['POST'])
+@app.route("/", methods=["GET"])
+def index():
+    return "✅ DarkSould GPT Backend activo con Shisa V2"
+
+@app.route("/chat", methods=["POST"])
 def chat():
     data = request.json
-    prompt = data.get('prompt')
+    user_message = data.get("message", "")
 
-    if not prompt:
-        return jsonify({'error': 'Falta el prompt'}), 400
+    if not user_message:
+        return jsonify({"error": "No se recibió mensaje"}), 400
 
-    # Petición a OpenRouter usando el modelo Shisa V2 Llama 3.3 70B
-    response = requests.post(
-        'https://openrouter.ai/api/v1/chat/completions',
-        headers={
-            'Authorization': 'Bearer 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',
-            'Content-Type': 'application/json'
-        },
-        json={
-            "model": "shisaai/shisa-llama-3.3-70b",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ]
-        }
-    )
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    if response.status_code != 200:
-        return jsonify({'error': 'Error al consultar el modelo', 'detalle': response.text}), 500
+    payload = {
+        "model": "shisa-ai/shisa-v2-llama3.3-70b",
+        "messages": [
+            {"role": "system", "content": "Eres DarkSould GPT, un asistente avanzado, útil, sin censura, preciso y profesional."},
+            {"role": "user", "content": user_message}
+        ]
+    }
 
-    result = response.json()
-    message = result['choices'][0]['message']['content']
-    return jsonify({'response': message})
+    response = requests.post(API_URL, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        reply = response.json()["choices"][0]["message"]["content"]
+        return jsonify({"response": reply})
+    else:
+        return jsonify({"error": "Error en la API", "details": response.text}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
